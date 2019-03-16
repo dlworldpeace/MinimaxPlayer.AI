@@ -17,6 +17,8 @@ class Ivegner(BasePokerPlayer):
         init_stack_size = 1000
 
         self.agent = DQNAgent(STATE_SIZE, N_ACTIONS, N_AGENTS, STARTING_EPSILON, E_MIN, E_DECAY, GAMMA)
+        self.agent.load("trainedModel1.h5")
+        print(self.agent.model.get_weights())
         self.prev_stack_size = init_stack_size
         self.prev_state = None
         self.prev_action = None
