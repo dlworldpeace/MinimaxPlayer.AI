@@ -11,8 +11,8 @@ class RandomPlayer(BasePokerPlayer):
     #pp.pprint(round_state)
     #print("------------HOLE_CARD----------")
     #pp.pprint(hole_card)
-    #print("------------VALID_ACTIONS----------")
-    #pp.pprint(valid_actions)
+    print("------------VALID_ACTIONS----------")
+    print(valid_actions)
     #print("-------------------------------")
     r = rand.random()
     if r <= 0.5:
