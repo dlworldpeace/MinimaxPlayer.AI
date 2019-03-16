@@ -42,22 +42,22 @@ class Ivegner(BasePokerPlayer):
             chosen_action = sorted_by_best_action[_valid_action_idx]
             if chosen_action == 0:
                 action_str = 'fold'
-                amount = 0
+                #amount = 0
                 _valid_action = True
                 break
             elif chosen_action == 1:
                 action_str = 'call'
-                amount = valid_actions[1]['amount']
+                #amount = valid_actions[1]['amount']
                 _valid_action = True
                 break
             else:
                 action_str = 'raise'
-                amount = RAISE_AMTS[chosen_action-2] * self.bb_amount
-                if valid_actions[2]['amount']['min'] <= amount <= valid_actions[2]['amount']['max']:
-                    _valid_action = True
-                    break
-                else:
-                    _valid_action_idx += 1
+                #amount = RAISE_AMTS[chosen_action-2] * self.bb_amount
+                # if valid_actions[2]['amount']['min'] <= amount <= valid_actions[2]['amount']['max']:
+                _valid_action = True
+                #     break
+                # else:
+                #     _valid_action_idx += 1
 
         new_stack_size = game_state['seats'][self.player_idx]['stack']
         reward = (new_stack_size - self.prev_stack_size) / self.bb_amount
@@ -69,7 +69,7 @@ class Ivegner(BasePokerPlayer):
         self.prev_stack_size = new_stack_size
         self.prev_state = features
         self.prev_action = chosen_action
-        return action_str, amount
+        return action_str  #, amount
 
     def receive_round_result_message(self, winners, hand_info, round_state):
         pass
