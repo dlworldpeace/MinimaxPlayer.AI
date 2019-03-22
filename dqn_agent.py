@@ -101,6 +101,8 @@ class DQNAgent:
         player_uuid = game_state['seats'][player_idx]['uuid']
         bb_amount = game_state['small_blind_amount'] * 2
 
+        print(player_uuid)
+
         # split hole cards, onehot suits and values
 
         hole_suits, hole_values = self._cards_to_arrays(hole_cards)
@@ -129,10 +131,14 @@ class DQNAgent:
         own_stack_size = [game_state['seats'][player_idx]['stack'] / bb_amount]
 
         # other players stack size
+        # NOTE THAT the player's stack size is always in relation to the big blind amount
         players_after_stacks = [p['stack'] / bb_amount for p in game_state['seats'][player_idx + 1:]]
         players_before_stacks = [p['stack'] / bb_amount for p in game_state['seats'][:player_idx]]
         players_after_stacks.extend(players_before_stacks)
         other_players_stack_sizes = players_after_stacks
+
+        print("other_players_stack_sizes")
+        print(other_players_stack_sizes)
 
         # TODO: distance from button, scaled from 0 to 1
         # n_players = len(game_state['seats'])
@@ -143,6 +149,9 @@ class DQNAgent:
         players_before_folds = [int(p['state'] == 'folded') for p in game_state['seats'][:player_idx]]
         players_after_folds.extend(players_before_folds)
         player_folds = players_after_folds
+
+        print("player_folds")
+        print(player_folds)
 
         # action history, for use below
         game_state_histories = (game_state['action_histories'].values())
@@ -156,27 +165,21 @@ class DQNAgent:
             else:
                 break
         moves_since_our_last.reverse()
-        moves_since_our_last = moves_since_our_last[:self.num_agents]
+        moves_since_our_last = moves_since_our_last[:self.num_agents] #takes the last 4 moves played by other players
+        print("moves_since_our_last")
+        print(moves_since_our_last)
         temp_move_zeroes = np.zeros(self.num_agents)
         money_since_our_last_move = [a.get('amount', 0) for a in moves_since_our_last]
         for i, m in enumerate(money_since_our_last_move):
             temp_move_zeroes[i] = m
         money_since_our_last_move = temp_move_zeroes
 
-        print(valid_actions)
-
-        # amt to call
-        amt_to_call = [0]
-        for action in valid_actions:
-            if action['action'] == 'call':
-                amt_to_call = 1 #[action['amount'] / bb_amount]
-                break
-
-        min_raise, max_raise = 10, 10 #valid_actions[2]['amount']['min'] / bb_amount, valid_actions[2]['amount']['max'] / bb_amount
+        print("money_since_our_last_move")
+        print(money_since_our_last_move)
 
         feature_arrays = [hole_values, hole_suits, river_values, river_suits, total_pot_as_bb,
-                own_stack_size, other_players_stack_sizes, player_folds, money_since_our_last_move,
-                amt_to_call, min_raise, max_raise]
+                own_stack_size, other_players_stack_sizes, player_folds, money_since_our_last_move
+                ]
 
         ret = None
 
