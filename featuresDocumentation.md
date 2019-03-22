@@ -21,7 +21,7 @@
 - ~~max_raise~~
 
 ---
-##TODOs
+## TODOs
 1. All the TODOs above
 2. Double check stack size in `other\_players\_stack\_sizes` (doesnt seem to tally)
 3. Check if the right values are gathered for a 2 player environment (`other\_players\_stack\_sizes` and `player_folds`)
