@@ -11,22 +11,25 @@ from keras import backend as K
 
 class RandomPlayer(BasePokerPlayer):
 
+    def __init__(self):	
+        super(RandomPlayer, self).__init__()	
+        STATE_SIZE = 134	
+        N_ACTIONS = 8	
+        N_AGENTS = 4 # default	
+        STARTING_EPSILON = 1.0 # default	
+        E_MIN = 0.01	
+        E_DECAY = 0.995	
+        GAMMA = 0.95	
+
+        init_stack_size = 1000	
+
+        self.agent = DQNAgent(STATE_SIZE, N_ACTIONS, N_AGENTS, STARTING_EPSILON, E_MIN, E_DECAY, GAMMA)	
+        self.agent.load("trainedModel1.h5")	
+
     def declare_action(self, valid_actions, hole_cards, game_state):
 
-        STATE_SIZE = 134
-        N_ACTIONS = 8
-        N_AGENTS = 4 # default
-        STARTING_EPSILON = 1.0 # default
-        E_MIN = 0.01
-        E_DECAY = 0.995
-        GAMMA = 0.95
-        init_stack_size = 1000
-
-        agent = DQNAgent(STATE_SIZE, N_ACTIONS, N_AGENTS, STARTING_EPSILON, E_MIN, E_DECAY, GAMMA)
-        agent.load("trainedModel1.h5")
-
-        features = agent.make_features(valid_actions, hole_cards, game_state)
-        actions = agent.act(features)
+        features = self.agent.make_features(valid_actions, hole_cards, game_state)
+        actions = self.agent.act(features)
         action_str, chosen_action, amount = None, None, 0
         sorted_by_best_action = np.argsort(actions)[::-1]   # first entry is index of best action
 
