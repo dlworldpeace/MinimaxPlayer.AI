@@ -14,7 +14,7 @@ class RandomPlayer(BasePokerPlayer):
 
     def __init__(self):	
         super(RandomPlayer, self).__init__()	
-        STATE_SIZE = 134	
+        STATE_SIZE = 125	
         N_ACTIONS = 8	
         N_AGENTS = 4 # default	
         STARTING_EPSILON = 1.0 # default	
@@ -25,7 +25,7 @@ class RandomPlayer(BasePokerPlayer):
         init_stack_size = 1000	
 
         self.agent = DQNAgent(STATE_SIZE, N_ACTIONS, N_AGENTS, STARTING_EPSILON, E_MIN, E_DECAY, GAMMA)	
-        self.agent.load("trainedModel1.h5")	
+        self.agent.load("trainedModel2.h5")	
 
     def declare_action(self, valid_actions, hole_card, round_state):
 
