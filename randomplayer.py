@@ -8,6 +8,7 @@ from keras.layers import Dense, SimpleRNN
 from keras.models import Sequential
 from keras.optimizers import Adam
 from keras import backend as K
+import pypokerengine.utils.game_state_utils as gsu
 
 class RandomPlayer(BasePokerPlayer):
 
@@ -26,47 +27,47 @@ class RandomPlayer(BasePokerPlayer):
         self.agent = DQNAgent(STATE_SIZE, N_ACTIONS, N_AGENTS, STARTING_EPSILON, E_MIN, E_DECAY, GAMMA)	
         self.agent.load("trainedModel1.h5")	
 
-    def declare_action(self, valid_actions, hole_cards, game_state):
+    def declare_action(self, valid_actions, hole_card, round_state):
 
-        features = self.agent.make_features(valid_actions, hole_cards, game_state)
+        features = self.agent.make_features(valid_actions, hole_card, round_state)
         actions = self.agent.act(features)
-        action_str, chosen_action, amount = None, None, 0
-        sorted_by_best_action = np.argsort(actions)[::-1]   # first entry is index of best action
 
-        _valid_action, _valid_action_idx = False, 0
-        while not _valid_action:     # find best valid action
-            chosen_action = sorted_by_best_action[_valid_action_idx]
-            if chosen_action == 0:
-                action_str = 'fold'
-                _valid_action = True
-                break
-            elif chosen_action == 1:
-                action_str = 'call'
-                _valid_action = True
-                break
-            else:
-                action_str = 'raise'
-                _valid_action = True
-                break
+        sorted_by_best_action = np.argsort(actions)[::-1]
+        chosen_action = sorted_by_best_action[0]
+        action = None
 
-        return action_str
+        if chosen_action == 0:
+            action = 'fold'
+        elif chosen_action == 1:
+            action = 'call'
+        else:
+            action = 'raise'
 
-    def receive_round_result_message(self, winners, hand_info, round_state):
-        pass
+        return action
 
     def receive_game_start_message(self, game_info):
+        # print("\n\n")
+        # pprint.pprint(game_info)
+        # print("---------------------------------------------------------------------")
         pass
 
     def receive_round_start_message(self, round_count, hole_card, seats):
+        # print("My ID : "+self.uuid+", round count : "+str(round_count)+", hole card : "+str(hole_card))
+        # pprint.pprint(seats)
+        # print("-------------------------------")
         pass
 
     def receive_street_start_message(self, street, round_state):
         pass
 
-    def receive_game_update_message(self, new_action, round_state):
+    def receive_game_update_message(self, action, round_state):
         pass
 
     def receive_round_result_message(self, winners, hand_info, round_state):
+        # print("My ID (round result) : "+self.uuid)
+        # pprint.pprint(round_state)
+        # print("\n\n")
+        # self.round_count = self.round_count + 1
         pass
 
     def setup_ai():
