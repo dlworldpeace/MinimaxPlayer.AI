@@ -4,7 +4,6 @@
 - river_values
 - river_suits
 - total\_pot\_as\_bb
-	- **TODO: modify to remove main pot and small pot differentiation**
 - own\_stack\_size
 	- _NOTE THAT the player's stack size is always in relation to the big blind amount_
 - other\_players\_stack\_sizes
@@ -15,19 +14,18 @@
 	- 1 if player has folded, 0 if not.
 	- Order of players is similar to `other\_players\_stack\_sizes`
 - money\_since\_our\_last\_move
-	- **TODO: check if need to modify, this relies on move amounts**
 - ~~amt\_to\_call~~
 - ~~min_raise~~
 - ~~max_raise~~
 
 ---
 ## TODOs
+4. Improve features
+
+done:
 1. All the TODOs above
 2. Double check stack size in `other\_players\_stack\_sizes` (doesnt seem to tally)
 3. Check if the right values are gathered for a 2 player environment (`other\_players\_stack\_sizes` and `player_folds`)
-4. Improve features
-
-
 
 
 

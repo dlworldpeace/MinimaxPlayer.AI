@@ -15,7 +15,7 @@ class RandomPlayer(BasePokerPlayer):
         super(RandomPlayer, self).__init__()	
         STATE_SIZE = 134	
         N_ACTIONS = 8	
-        N_AGENTS = 4 # default	
+        N_AGENTS = 2 # default	
         STARTING_EPSILON = 1.0 # default	
         E_MIN = 0.01	
         E_DECAY = 0.995	
@@ -239,6 +239,7 @@ class DQNAgent:
         # own stack size
         own_stack_size = [game_state['seats'][player_idx]['stack'] / bb_amount]
 
+
         # other players stack size
         players_after_stacks = [p['stack'] / bb_amount for p in game_state['seats'][player_idx + 1:]]
         players_before_stacks = [p['stack'] / bb_amount for p in game_state['seats'][:player_idx]]
@@ -273,6 +274,12 @@ class DQNAgent:
         for i, m in enumerate(money_since_our_last_move):
             temp_move_zeroes[i] = m
         money_since_our_last_move = temp_move_zeroes
+
+        # print("own_stack_size " + str(own_stack_size)
+        #         + ", other_players_stack_sizes: " + str(other_players_stack_sizes)
+        #         + ", player_folds: " + str(player_folds)
+        #         + ", money_since_our_last_move: " + str(money_since_our_last_move)
+        #         )
 
         feature_arrays = [hole_values, hole_suits, river_values, river_suits, total_pot_as_bb,
                 own_stack_size, other_players_stack_sizes, player_folds, money_since_our_last_move
