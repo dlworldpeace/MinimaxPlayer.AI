@@ -235,9 +235,7 @@ class DQNAgent:
         river_values = temp_value_zeros
 
         # pot
-        total_main_amount = game_state['pot']['main']['amount']
-        total_side_pot = sum([a['amount'] for a in game_state['pot']['side']])
-        total_pot_as_bb = [(total_main_amount + total_side_pot) / bb_amount]
+        total_pot_as_bb = [game_state['pot']['main']['amount'] / bb_amount]
 
         # own stack size
         own_stack_size = [game_state['seats'][player_idx]['stack'] / bb_amount]
@@ -277,18 +275,9 @@ class DQNAgent:
             temp_move_zeroes[i] = m
         money_since_our_last_move = temp_move_zeroes
 
-        # amt to call
-        amt_to_call = [0]
-        for action in valid_actions:
-            if action['action'] == 'call':
-                amt_to_call = 1 #[action['amount'] / bb_amount]
-                break
-
-        min_raise, max_raise = 10, 10 #valid_actions[2]['amount']['min'] / bb_amount, valid_actions[2]['amount']['max'] / bb_amount
-
         feature_arrays = [hole_values, hole_suits, river_values, river_suits, total_pot_as_bb,
-                own_stack_size, other_players_stack_sizes, player_folds, money_since_our_last_move,
-                amt_to_call, min_raise, max_raise]
+                own_stack_size, other_players_stack_sizes, player_folds, money_since_our_last_move
+                ]
 
         ret = None
 
