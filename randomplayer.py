@@ -51,23 +51,30 @@ class RandomPlayer(BasePokerPlayer):
 
         return action_str
 
-    def receive_round_result_message(self, winners, hand_info, round_state):
-        pass
+def receive_game_start_message(self, game_info):
+    # print("\n\n")
+    # pprint.pprint(game_info)
+    # print("---------------------------------------------------------------------")
+    pass
 
-    def receive_game_start_message(self, game_info):
-        pass
+def receive_round_start_message(self, round_count, hole_card, seats):
+    # print("My ID : "+self.uuid+", round count : "+str(round_count)+", hole card : "+str(hole_card))
+    # pprint.pprint(seats)
+    # print("-------------------------------")
+    pass
 
-    def receive_round_start_message(self, round_count, hole_card, seats):
-        pass
+def receive_street_start_message(self, street, round_state):
+    pass
 
-    def receive_street_start_message(self, street, round_state):
-        pass
+def receive_game_update_message(self, action, round_state):
+    pass
 
-    def receive_game_update_message(self, new_action, round_state):
-        pass
-
-    def receive_round_result_message(self, winners, hand_info, round_state):
-        pass
+def receive_round_result_message(self, winners, hand_info, round_state):
+    # print("My ID (round result) : "+self.uuid)
+    # pprint.pprint(round_state)
+    # print("\n\n")
+    # self.round_count = self.round_count + 1
+    pass
 
     def setup_ai():
         return RandomPlayer()
