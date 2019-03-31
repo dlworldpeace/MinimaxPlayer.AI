@@ -7,6 +7,7 @@ import utils.game_state
 from pypokerengine.players import BasePokerPlayer
 from utils import argmax, vector_add
 
+
 class HonestMiniMaxPlayer(BasePokerPlayer):
 
     def declare_action(self, valid_actions, hole_card, round_state):
@@ -28,45 +29,52 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
                 v = -infinity
 
-                # TODO filter valid_actions: if already raised 4 times in the past, remove 'RAISE' from valid_actions. 
-                actions = pokerGame.actions(state);       
+                actions = PokerGame.actions(state)
                 
-                for action in valid_actions :
-
-                    if action == 'FOLD' :
-
+                if (actions.len == 2) :
+                    valid_actions.pop(2) # Remove 'RAISE' from valid actions
+                
+                for action, amount in valid_actions :
+                    if action == 'fold' :
                         potSize = state['pot']['main']['amount']
                         v = max(v, -potsize/2) #TODO
 
-                    elif action == 'CALL' : 
-
+                    elif action == 'call' : 
                         state.mutate_to_next_player()
-                        
                         if state.prev_history['action'] == 'RAISE':
                             v = max(v, chance_node(street, knowncards, unknowncards, player, state))
                         else:
                             v = max(v, min_value(state))
                     
                     else : # action == 'RAISE'
-
                         v = max(v, min_value(state))
-
                 return v
 
             def min_value(state):
 
                 v = infinity
 
-                # fold action:
-                    v = min(v, potsize)
-                # call action 
-                # if for consecutive RC & CC action history, check chance value
-                    v = min(v, chance_node(street, knowncards, unknowncards, player, state))
-                # if not   
-                    v = min(v, max_value(state))
-                # raise action:
-                    v = min(v, max_value(state))
-                    
+                actions = PokerGame.actions(state)
+
+                if (actions.len == 2) :
+                    valid_actions.pop(2) # Remove 'RAISE' from valid actions
+
+                for action, amount in valid_actions :
+                    # fold action:
+                    if action == 'fold' :
+                        potSize = state['pot']['main']['amount']
+                        v = min(v, potsize/2)
+
+                    # call action 
+                    elif action == 'call' :
+                        state.mutate_to_next_player()
+                        if state.prev_history['action'] == 'RAISE' :         # if for consecutive RC & CC action history, check chance value
+                            v = min(v, chance_node(street, knowncards, unknowncards, player, state))
+                        else :
+                            v = min(v, max_value(state))
+
+                    # raise action:
+                    else :                            
                 return v
 
             def chance_node(street, knowncards, unknowncards, player):
