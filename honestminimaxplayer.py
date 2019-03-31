@@ -82,7 +82,6 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 
                 if street == 'river': # needless to draw, already 5 cc
                     return 0# TODO estimated hands value based on hold cards + community cards
-                
                 if street == 'flop': # draw 1 more community cards, now 4 cc
                     nextstreet = 'turn'
                 elif street == 'turn': # draw 1 more community cards, now 5 cc

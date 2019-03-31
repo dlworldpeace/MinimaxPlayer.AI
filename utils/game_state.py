@@ -35,7 +35,7 @@ import copy
 
 
 # TODO: check if showdown is a street
-# TODO: uise property getter/setter where applicable
+# TODO: use property getter/setter where applicable
 class State:
 
     def __init__(self, round_state: Dict[str, Any], is_terminal: bool = False):
@@ -44,6 +44,8 @@ class State:
         self.p1_uuid: str = round_state['seats'][1]['uuid']
         self.p0_raises: int = 0
         self.p1_raises: int = 0
+        self.p0_prev_amount: int = 0
+        self.p1_prev_amount: int = 0
         self.preflop_raises: int = 0
         self.flop_raises: int = 0
         self.turn_raises: int = 0
@@ -99,6 +101,13 @@ class State:
         new_round_state['next_player'] %= 2
         new_round_state['seats'][self.current_player]['stack'] -= new_add_amount
         new_round_state_action_histories = new_round_state['action_histories']
+        
+        # To be implemented for call
+        if self.current_player == 0 :
+            self.p0_prev_amount = new_amount
+        else : 
+            self.p1_prev_amount = new_amount
+
         if self.street in new_round_state_action_histories:
             new_round_state_action_histories[self.street].append({
                 'action': 'RAISE',
@@ -139,9 +148,38 @@ class State:
 
 
     def call_bet(self):
-        raise NotImplementedError
+        new_round_state = copy.deepcopy(self._round_state)
+        new_amount = self.prev_history['amount']
+        if self.current_player == 0 :
+            new_paid_amount = new_amount - self.p0_prev_amount
+        else :
+            new_paid_amount = new_amount - self.p0_prev_amount
 
-    def next_player(self) :
+        new_round_state['pot']['main']['amount'] += new_paid_amount
+        new_round_state['next_player'] += 1
+        new_round_state['next_player'] %= 2
+        new_round_state['seats'][self.current_player]['stack'] -= new_paid_amount
+
+        new_round_state_action_histories = new_round_state['action_histories']
+        
+        if self.street in new_round_state_action_histories:
+            new_round_state_action_histories[self.street].append({
+                'action' : 'CALL',
+                'amount' : new_amount,
+                'paid' : new_paid_amount
+                'uuid' : self.current_player_uuid()
+            })
+        else :
+            new_round_state_action_histories[self.street] =[{
+                'action' : 'CALL',
+                'amount' : new_amount,
+                'paid' : new_paid_amount
+                'uuid' : self.current_player_uuid()
+            }]
+
+        raise State(new_round_state)
+
+    def mutate_to_next_player(self) :
         self.current_player += 1
         self.current_player %= 2
 
@@ -168,9 +206,9 @@ class PokerGame:
                     (state.p0_raises < 4 if state.current_player == 0 else state.p1_raises < 4)
 
         if can_raise:
-            return ['FOLD', 'CALL', 'RAISE']
+            return [Action.FOLD, Action.CALL, Action.RAISE]
         else:
-            return ['FOLD', 'CALL']
+            return [Action.FOLD, Action.CALL]
 
     def result(self, state: State, action):
         """Return the state that results from making a move from a state."""
