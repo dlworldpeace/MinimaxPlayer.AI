@@ -141,6 +141,11 @@ class State:
     def call_bet(self):
         raise NotImplementedError
 
+    def next_player(self) :
+        self.current_player += 1
+        self.current_player %= 2
+
+
 # TODO: Replace poker game actions with Enums.
 @unique
 class Action(Enum):

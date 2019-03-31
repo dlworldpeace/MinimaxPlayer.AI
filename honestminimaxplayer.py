@@ -4,12 +4,13 @@ import random
 import itertools
 import copy
 from utils import argmax, vector_add
+from utils.game_state import State
 
 class HonestMiniMaxPlayer(BasePokerPlayer):
 
     def declare_action(self, valid_actions, hole_card, round_state):
-
-        current_street = round_state['street']
+        state = State(round_state)
+        current_street = state['street']
 
         if current_street == 'preflop':
 
@@ -24,15 +25,27 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
             def max_value(state):
                 v = -infinity
                 
-                # fold action:
-                    v = max(v, -potsize)
-                # call action 
-                # if for consecutive RC & CC action history, check chance value
-                    v = max(v, chance_node(street, knowncards, unknowncards, player, state))
-                # if not   
-                    v = max(v, min_value(state))
-                # raise action:
-                    v = max(v, min_value(state))
+                
+                for action in valid_actions :
+                    if action == 'FOLD' :
+                        potSize = state['pot']['main']['amount']
+                        v = max(v, -potsize/2)
+
+                    elif action == 'CALL' : 
+                        street = state['street']
+                        knowncards = state['community_card'].append(hole_card)
+                        state.mutate_to_next_player()
+                        
+                        if 'RAISE' ==  state.prev_history['action'] :
+                            # if for consecutive RC & CC action history, check chance value
+                            v = max(v, chance_node(street, knowncards, unknowncards, player, state))
+
+
+                        else :
+                            v = max(v, min_value(state))
+                    
+                    else : 
+                        v = max(v, min_value(state))
 
                 return v
 
