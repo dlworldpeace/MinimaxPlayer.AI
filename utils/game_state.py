@@ -179,12 +179,15 @@ class State:
 
         raise State(new_round_state)
 
-    def mutate_to_next_player(self) :
-        self.current_player += 1
-        self.current_player %= 2
+    def mutate_to_next_player(self, action) :
+        """Updates the state that results from making a move 'action' from a state."""
+        return {'FOLD': state.fold_bet,
+                'RAISE': state.raise_bet,
+                'CALL': state.call_bet}[action]()
 
 
 # TODO: Replace poker game actions with Enums.
+# @junjie :  Is using strings better than using enums? Enums are for making the code more readable are just for efficiency?
 @unique
 class Action(Enum):
     FOLD = 0
@@ -215,6 +218,8 @@ class PokerGame:
         return {'FOLD': state.fold_bet,
                 'RAISE': state.raise_bet,
                 'CALL': state.call_bet}[action]()
+
+
 
     #TODO: our agent may not always be player 0
     def utility(self, state, player):
