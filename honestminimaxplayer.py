@@ -75,6 +75,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
                     # raise action:
                     else :                            
+                        v = min(v, max_value(state))
                 return v
 
             def chance_node(street, knowncards, unknowncards, player):
