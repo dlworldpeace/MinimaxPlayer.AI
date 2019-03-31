@@ -1,14 +1,16 @@
-from pypokerengine.players import BasePokerPlayer
-from collections import namedtuple
-import random
-import itertools
 import copy
+import itertools
+import random
+from collections import namedtuple
+
+import utils.game_state
+from pypokerengine.players import BasePokerPlayer
 from utils import argmax, vector_add
-from utils.game_state import State
 
 class HonestMiniMaxPlayer(BasePokerPlayer):
 
     def declare_action(self, valid_actions, hole_card, round_state):
+
         state = State(round_state)
         current_street = state['street']
 
@@ -23,33 +25,36 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
             total_num_of_cards = 52
 
             def max_value(state):
+
                 v = -infinity
-                
+
+                # TODO filter valid_actions: if already raised 4 times in the past, remove 'RAISE' from valid_actions. 
+                actions = pokerGame.actions(state);       
                 
                 for action in valid_actions :
+
                     if action == 'FOLD' :
+
                         potSize = state['pot']['main']['amount']
-                        v = max(v, -potsize/2)
+                        v = max(v, -potsize/2) #TODO
 
                     elif action == 'CALL' : 
-                        street = state['street']
-                        knowncards = state['community_card'].append(hole_card)
+
                         state.mutate_to_next_player()
                         
-                        if 'RAISE' ==  state.prev_history['action'] :
-                            # if for consecutive RC & CC action history, check chance value
+                        if state.prev_history['action'] == 'RAISE':
                             v = max(v, chance_node(street, knowncards, unknowncards, player, state))
-
-
-                        else :
+                        else:
                             v = max(v, min_value(state))
                     
-                    else : 
+                    else : # action == 'RAISE'
+
                         v = max(v, min_value(state))
 
                 return v
 
             def min_value(state):
+
                 v = infinity
 
                 # fold action:
@@ -68,7 +73,8 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 
                 if street == 'river': # needless to draw, already 5 cc
                     return 0# TODO estimated hands value based on hold cards + community cards
-                elif street == 'flop': # draw 1 more community cards, now 4 cc
+                
+                if street == 'flop': # draw 1 more community cards, now 4 cc
                     nextstreet = 'turn'
                 elif street == 'turn': # draw 1 more community cards, now 5 cc
                     nextstreet = 'river'
@@ -88,13 +94,16 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 return sum_chances / num_of_unseen_cards
 
             # return the best action based on expected minimax value:
+            street = state['street']
+            knowncards = state['community_card'].append(hole_card)
             knowncards = hole_card.append(round_state['communty_cards'])
             unknowncards = entiredeck
             for card in knowncards:
                 unknowncards.remove(card)
-            action = argmax(valid_actions,
-                        key=lambda a: chance_node(current_street, knowncards, unknowncards, valid_actions), default=None)
+            state.mutate_to_next_player()
 
+            return argmax(valid_actions, key=lambda a: chance_node(street, knowncards, unknowncards, valid_actions), default=None)
+        
         return action
 
     def receive_game_start_message(self, game_info):
