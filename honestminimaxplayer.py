@@ -31,23 +31,28 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
                 actions = PokerGame.actions(state)
                 
+                # Remove 'RAISE' from valid actions
                 if (actions.len == 2) :
-                    valid_actions.pop(2) # Remove 'RAISE' from valid actions
+                    valid_actions.pop(2) 
                 
                 for action, amount in valid_actions :
                     if action == 'fold' :
                         potSize = state['pot']['main']['amount']
                         v = max(v, -potsize/2) #TODO
+                        state.mutate_to_next_player('FOLD')
+
 
                     elif action == 'call' : 
-                        state.mutate_to_next_player()
                         if state.prev_history['action'] == 'RAISE':
                             v = max(v, chance_node(street, knowncards, unknowncards, player, state))
                         else:
                             v = max(v, min_value(state))
-                    
-                    else : # action == 'RAISE'
+                            
+                        state.mutate_to_next_player('CALL')
+
+                    elif action == 'RAISE' :
                         v = max(v, min_value(state))
+                        state.mutate_to_next_player('RAISE')
                 return v
 
             def min_value(state):
@@ -55,27 +60,29 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 v = infinity
 
                 actions = PokerGame.actions(state)
-
+                
+                # Remove 'RAISE' from valid actions
                 if (actions.len == 2) :
-                    valid_actions.pop(2) # Remove 'RAISE' from valid actions
+                    valid_actions.pop(2) 
 
                 for action, amount in valid_actions :
-                    # fold action:
                     if action == 'fold' :
                         potSize = state['pot']['main']['amount']
                         v = min(v, potsize/2)
+                        state.mutate_to_next_player('FOLD')
 
-                    # call action 
                     elif action == 'call' :
-                        state.mutate_to_next_player()
-                        if state.prev_history['action'] == 'RAISE' :         # if for consecutive RC & CC action history, check chance value
+                        # if for consecutive RC & CC action history, check chance value
+                        if state.prev_history['action'] == 'RAISE' :         
                             v = min(v, chance_node(street, knowncards, unknowncards, player, state))
                         else :
                             v = min(v, max_value(state))
+                        
+                        state.mutate_to_next_player('CALL')
 
-                    # raise action:
-                    else :                            
+                    elif action == 'RAISE' :
                         v = min(v, max_value(state))
+                        state.mutate_to_next_player('RAISE')
                 return v
 
             def chance_node(street, knowncards, unknowncards, player):
