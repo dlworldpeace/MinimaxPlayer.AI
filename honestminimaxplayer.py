@@ -5,17 +5,14 @@ from collections import namedtuple
 
 import utils.game_state
 from pypokerengine.players import BasePokerPlayer
-from utils import argmax, vector_add
-
 
 class HonestMiniMaxPlayer(BasePokerPlayer):
 
     def declare_action(self, valid_actions, hole_card, round_state):
 
-        state = State(round_state)
-        current_street = state['street']
+        state = State(round_state, hole_card)
 
-        if current_street == 'preflop':
+        if state.street == 'preflop':
 
             #TODO Check lookup table, fold if necessary, call if hold cards good to go
             action = 'call'
@@ -28,19 +25,14 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
             def max_value(state):
 
                 v = -infinity
+                actions = PokerGame.actions(state) # get valid actions
+                
+                for action in actions :
 
-                actions = PokerGame.actions(state)
-                
-                # Remove 'RAISE' from valid actions
-                if (actions.len == 2) :
-                    valid_actions.pop(2) 
-                
-                for action, amount in valid_actions :
                     if action == 'fold' :
                         potSize = state['pot']['main']['amount']
                         v = max(v, -potsize/2) #TODO
-                        state.mutate_to_next_player('FOLD')
-
+                        state.switch_player()
 
                     elif action == 'call' : 
                         if state.prev_history['action'] == 'RAISE':
@@ -48,76 +40,67 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                         else:
                             v = max(v, min_value(state))
                             
-                        state.mutate_to_next_player('CALL')
+                        state.switch_player()
 
                     elif action == 'RAISE' :
                         v = max(v, min_value(state))
-                        state.mutate_to_next_player('RAISE')
+                        state.switch_player()
+
                 return v
 
             def min_value(state):
 
                 v = infinity
+                actions = PokerGame.actions(state) # get valid actions
 
-                actions = PokerGame.actions(state)
-                
-                # Remove 'RAISE' from valid actions
-                if (actions.len == 2) :
-                    valid_actions.pop(2) 
+                for action in actions :
 
-                for action, amount in valid_actions :
                     if action == 'fold' :
                         potSize = state['pot']['main']['amount']
                         v = min(v, potsize/2)
-                        state.mutate_to_next_player('FOLD')
+                        state.switch_player()
 
                     elif action == 'call' :
                         # if for consecutive RC & CC action history, check chance value
                         if state.prev_history['action'] == 'RAISE' :         
-                            v = min(v, chance_node(street, knowncards, unknowncards, player, state))
+                            v = min(v, chance_node(state))
                         else :
                             v = min(v, max_value(state))
                         
-                        state.mutate_to_next_player('CALL')
+                        state.switch_player()
 
                     elif action == 'RAISE' :
                         v = min(v, max_value(state))
-                        state.mutate_to_next_player('RAISE')
+                        state.switch_player()
+
                 return v
 
-            def chance_node(street, knowncards, unknowncards, player):
+            def chance_node(state):
                 
-                if street == 'river': # needless to draw, already 5 cc
+                if PokerGame.terminal_test(state): # needless to draw, already 5 cc
                     return 0# TODO estimated hands value based on hold cards + community cards
-                if street == 'flop': # draw 1 more community cards, now 4 cc
-                    nextstreet = 'turn'
-                elif street == 'turn': # draw 1 more community cards, now 5 cc
-                    nextstreet = 'river'
 
-                # if not, then just aggregate all the nodes under the chance node based on bucketed probability
                 sum_chances = 0
-                num_of_unseen_cards = total_num_of_cards - len(knowncards)
-                swap = {0: 1, 1:0}
-                for card in unknowncards:
-                    knowncards = knowncards.append(card)
-                    unknowncards = unknowncards.remove(card)
-                    if player is smallblind:
-                        util = max_value(nextstreet, knowncards, unknowncards, swap[player])
+                num_of_unknown_cards = total_num_of_cards - len(state.hole_card) - len(state.community_card)
+                for i in range(52):
+                    if i in state.known_card:
+                        continue
+                    elif player is smallblind:
+                        state.switch_player()
+                        util = max_value(state)
                     else:
-                        util = min_value(nextstreet, knowncards, unknowncards, swap[player])
+                        state.switch_player()
+                        util = min_value(state)
                     sum_chances += util
                 return sum_chances / num_of_unseen_cards
 
-            # return the best action based on expected minimax value:
-            street = state['street']
-            knowncards = state['community_card'].append(hole_card)
-            knowncards = hole_card.append(round_state['communty_cards'])
-            unknowncards = entiredeck
-            for card in knowncards:
-                unknowncards.remove(card)
-            state.mutate_to_next_player()
+            def argmax_random_tie(seq, key=lambda x: x):
+                """Return an element with highest fn(seq[i]) score; break ties at random."""
+                return max(shuffled(seq), key=key)
 
-            return argmax(valid_actions, key=lambda a: chance_node(street, knowncards, unknowncards, valid_actions), default=None)
+            # return the best action based on expected minimax value:
+            return argmax_random_tie(PokerGame.actions(state),
+                  key=lambda a: min_value(PokerGame.result(state, action)))
         
         return action
 

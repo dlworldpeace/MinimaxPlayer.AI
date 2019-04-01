@@ -35,17 +35,15 @@ import copy
 
 
 # TODO: check if showdown is a street
-# TODO: use property getter/setter where applicable
+# TODO: uise property getter/setter where applicable
 class State:
 
-    def __init__(self, round_state: Dict[str, Any], is_terminal: bool = False):
+    def __init__(self, round_state: Dict[str, Any], hole_card, is_terminal: bool = False):
         self._round_state = round_state
         self.p0_uuid: str = round_state['seats'][0]['uuid']
         self.p1_uuid: str = round_state['seats'][1]['uuid']
         self.p0_raises: int = 0
         self.p1_raises: int = 0
-        self.p0_prev_amount: int = 0
-        self.p1_prev_amount: int = 0
         self.preflop_raises: int = 0
         self.flop_raises: int = 0
         self.turn_raises: int = 0
@@ -53,7 +51,8 @@ class State:
         self.curr_street_raises: int = 0
         self.prev_history = ''
         self.street = self._round_state['street']
-
+        self.known_card = []
+    
         for street, street_history in round_state['action_histories'].items():
             """
             In Python 3.7.0 the insertion-order preservation nature of dict objects has been declared to be an 
@@ -83,11 +82,20 @@ class State:
 
                 self.prev_history = ply
 
+        for card in hole_card:
+            self.known_card.append(convert_card_to_index(card))
+
+        for card in self._round_state['community_card']:
+            self.known_card.append(convert_card_to_index(card))
+
         self.current_player = round_state['next_player']
         self.p0_stack = round_state['seats'][0]['stack']
 
         self.p1_stack = round_state['seats'][1]['stack']
         self.is_terminal = is_terminal
+
+    def current_player_uuid(self):
+        return self.p0_uuid if self.current_player == 0 else self.p1_uuid
 
     def raise_bet(self):
         new_round_state = copy.deepcopy(self._round_state)
@@ -101,13 +109,6 @@ class State:
         new_round_state['next_player'] %= 2
         new_round_state['seats'][self.current_player]['stack'] -= new_add_amount
         new_round_state_action_histories = new_round_state['action_histories']
-        
-        # To be implemented for call
-        if self.current_player == 0 :
-            self.p0_prev_amount = new_amount
-        else : 
-            self.p1_prev_amount = new_amount
-
         if self.street in new_round_state_action_histories:
             new_round_state_action_histories[self.street].append({
                 'action': 'RAISE',
@@ -143,59 +144,29 @@ class State:
 
         return State(new_round_state, True)
 
-    def current_player_uuid(self):
-        return self.p0_uuid if self.current_player == 0 else self.p1_uuid
-
-
     def call_bet(self):
-        new_round_state = copy.deepcopy(self._round_state)
-        new_amount = self.prev_history['amount']
-        if self.current_player == 0 :
-            new_paid_amount = new_amount - self.p0_prev_amount
-        else :
-            new_paid_amount = new_amount - self.p0_prev_amount
+        raise NotImplementedError
 
-        new_round_state['pot']['main']['amount'] += new_paid_amount
-        new_round_state['next_player'] += 1
-        new_round_state['next_player'] %= 2
-        new_round_state['seats'][self.current_player]['stack'] -= new_paid_amount
+    def switch_player(self) :
+        self.current_player += 1
+        self.current_player %= 2
 
-        new_round_state_action_histories = new_round_state['action_histories']
-        
-        if self.street in new_round_state_action_histories:
-            new_round_state_action_histories[self.street].append({
-                'action' : 'CALL',
-                'amount' : new_amount,
-                'paid' : new_paid_amount
-                'uuid' : self.current_player_uuid()
-            })
-        else :
-            new_round_state_action_histories[self.street] =[{
-                'action' : 'CALL',
-                'amount' : new_amount,
-                'paid' : new_paid_amount
-                'uuid' : self.current_player_uuid()
-            }]
-
-        raise State(new_round_state)
-
-    def mutate_to_next_player(self, action) :
-        """Updates the state that results from making a move 'action' from a state."""
-        return {'FOLD': state.fold_bet,
-                'RAISE': state.raise_bet,
-                'CALL': state.call_bet}[action]()
-
+    def add_one_more_community_card(self, card):
+        if self.street == 'flop':
+            self.street = 'turn'
+        elif self.street == 'turn':
+            self.street = 'river'
+        self.community_card.append(card)
+        self.switch_player()
 
 # TODO: Replace poker game actions with Enums.
-# @junjie :  Is using strings better than using enums? Enums are for making the code more readable are just for efficiency?
 @unique
 class Action(Enum):
     FOLD = 0
     CALL = 1
     RAISE = 2
 
-
-class PokerGame:
+class PokerGame: #Static util class for State 
 
     def __init__(self, current_state=None, search_algorithm=None, evaluation_function=None):
         pass
@@ -209,17 +180,16 @@ class PokerGame:
                     (state.p0_raises < 4 if state.current_player == 0 else state.p1_raises < 4)
 
         if can_raise:
-            return [Action.FOLD, Action.CALL, Action.RAISE]
+            return ['FOLD', 'CALL', 'RAISE']
         else:
-            return [Action.FOLD, Action.CALL]
+            return ['FOLD', 'CALL']
 
     def result(self, state: State, action):
         """Return the state that results from making a move from a state."""
+        state.switch_player()
         return {'FOLD': state.fold_bet,
                 'RAISE': state.raise_bet,
                 'CALL': state.call_bet}[action]()
-
-
 
     #TODO: our agent may not always be player 0
     def utility(self, state, player):
@@ -235,3 +205,26 @@ class PokerGame:
     def terminal_test(self, state):
         """Return True if this is a final state for the game."""
         return state.is_terminal
+
+    def convert_card_to_index(self, card):
+        chars = list(card)
+        suite = {
+            'C' : 0, 
+            'D' : 13, 
+            'H' : 26, 
+            'S' : 39}
+        rank = {
+            '2' : 0,
+            '3' : 1,
+            '4' : 2,
+            '5' : 3,
+            '6' : 4,
+            '7' : 5,
+            '8' : 6,
+            '9' : 7,
+            'T' : 8,
+            'J' : 9,
+            'Q' : 10,
+            'K' : 11,
+            'A' : 12}
+        return suite[chars[0]] + rank[chars[1]]
