@@ -163,6 +163,45 @@ class State:
         self.p1_stack = round_state['seats'][1]['stack']
         self.is_terminal = is_terminal
 
+    def get_preflop_raises (self) :
+        return self.new_round_state['preflop_raises']
+
+    def get_flop_raises (self) :
+        return self.new_round_state['flop_raises']
+
+    def get_turn_raises (self) :
+        return self.new_round_state['turn_raises']
+
+    def get_river_raises (self) :
+        return self.new_round_state['river_raises']    
+
+    def get_p0_raises (self) :
+        return self.new_round_state['p0_raises']
+
+    def get_p1_raises (self) :
+        return self.new_round_state['p1_raises']   
+
+    def get_current_street_raises (self) :
+        return self.new_round_state['curr_street_raises'][self.street]   
+
+    def get_prev_history (self) :
+        return self.new_round_state['prev_history']   
+
+    def get_p0_prev_amount (self) :
+        return self.new_round_state['p0_prev_amount']    
+
+    def get_p1_prev_amount (self) :
+        return self.new_round_state['p1_prev_amount']  
+
+    def get_current_player (self) :
+        return self.current_player
+
+    def get_p0_stack (self) :
+        return self.p0_stack
+
+    def get_p1_stack (self) :
+        return self.p1_stack   
+
     def raise_bet(self):
         # I am not sure if i need to do an additional copy here, i am doing it just in case
         new_round_state = copy.deepcopy(self.new_round_state)
