@@ -30,9 +30,53 @@ import copy
              'turn': [{'action': 'CALL', 'amount': 0, 'paid': 0, 'uuid': 'zdmxlmfwytkigodciubiow'},
                       {'action': 'RAISE', 'amount': 40, 'paid': 40, 'add_amount': 40, 'uuid': 'lnjvmobrxhizukrppiqbda'},
                       {'action': 'CALL', 'amount': 40, 'paid': 40, 'uuid': 'zdmxlmfwytkigodciubiow'}],
-             'river': [{'action': 'CALL', 'amount': 0, 'paid': 0, 'uuid': 'zdmxlmfwytkigodciubiow'}]}}
+             'river': [{'action': 'CALL', 'amount': 0, 'paid': 0, 'uuid': 'zdmxlmfwytkigodciubiow'}]}
+            
+             }
 """
 
+
+""" Example new_round_state modified by state class
+
+        {
+         'street': 'river', 'pot': {'main': {'amount': 400}, 'side': []},
+         'community_card': ['DT', 'C2', 'ST', 'DA', 'HT'],
+         'dealer_btn': 1, 'next_player': 1, 'small_blind_pos': 0, 'big_blind_pos': 1, 'round_count': 10,
+         'small_blind_amount': 10,
+         'seats': [{'name': 'f1', 'uuid': 'zdmxlmfwytkigodciubiow', 'stack': 10200, 'state': 'participating'},
+                   {'name': 'FT2', 'uuid': 'lnjvmobrxhizukrppiqbda', 'stack': 9400, 'state': 'participating'}],
+         'action_histories': {
+             'preflop': [{'action': 'SMALLBLIND', 'amount': 10, 'add_amount': 10, 'uuid': 'zdmxlmfwytkigodciubiow'},
+                         {'action': 'BIGBLIND', 'amount': 20, 'add_amount': 10, 'uuid': 'lnjvmobrxhizukrppiqbda'},
+                         {'action': 'RAISE', 'amount': 40, 'paid': 30, 'add_amount': 20,
+                          'uuid': 'zdmxlmfwytkigodciubiow'},
+                         {'action': 'RAISE', 'amount': 60, 'paid': 40, 'add_amount': 20,
+                          'uuid': 'lnjvmobrxhizukrppiqbda'},
+                         {'action': 'RAISE', 'amount': 80, 'paid': 40, 'add_amount': 20,
+                          'uuid': 'zdmxlmfwytkigodciubiow'},
+                         {'action': 'CALL', 'amount': 80, 'paid': 20, 'uuid': 'lnjvmobrxhizukrppiqbda'}],
+             'flop': [{'action': 'RAISE', 'amount': 20, 'paid': 20, 'add_amount': 20, 'uuid': 'zdmxlmfwytkigodciubiow'},
+                      {'action': 'RAISE', 'amount': 40, 'paid': 40, 'add_amount': 20, 'uuid': 'lnjvmobrxhizukrppiqbda'},
+                      {'action': 'RAISE', 'amount': 60, 'paid': 40, 'add_amount': 20, 'uuid': 'zdmxlmfwytkigodciubiow'},
+                      {'action': 'RAISE', 'amount': 80, 'paid': 40, 'add_amount': 20, 'uuid': 'lnjvmobrxhizukrppiqbda'},
+                      {'action': 'CALL', 'amount': 80, 'paid': 20, 'uuid': 'zdmxlmfwytkigodciubiow'}],
+             'turn': [{'action': 'CALL', 'amount': 0, 'paid': 0, 'uuid': 'zdmxlmfwytkigodciubiow'},
+                      {'action': 'RAISE', 'amount': 40, 'paid': 40, 'add_amount': 40, 'uuid': 'lnjvmobrxhizukrppiqbda'},
+                      {'action': 'CALL', 'amount': 40, 'paid': 40, 'uuid': 'zdmxlmfwytkigodciubiow'}],
+             'river': [{'action': 'CALL', 'amount': 0, 'paid': 0, 'uuid': 'zdmxlmfwytkigodciubiow'}]}
+
+         'preflop_raises' : 2,
+         'flop_raises' : 3,
+         'turn_raises' : 2,
+         'river_raises' : 2,
+         'p0_raises' : 4,
+         'p1_raises' : 5,
+         'current_street_raises' : { 'river' : 2},
+         'prev_history' : {'action': 'CALL', 'amount': 0, 'paid': 0, 'uuid': 'zdmxlmfwytkigodciubiow'},
+         'p0_prev_amount' : 40,
+         'p1_prev_amount' : 20
+        }
+"""
 
 # TODO: check if showdown is a street
 # TODO: use property getter/setter where applicable
@@ -40,8 +84,6 @@ class State:
 
     def __init__(self, round_state: Dict[str, Any], is_cached: bool : False, is_terminal: bool = False):
         self._round_state = round_state
-        self.mainPot = round_state['pot']['main']['amount']
-        self.sidePot = round_state['pot']['main']['amount']
         self.p0_uuid: str = round_state['seats'][0]['uuid']
         self.p1_uuid: str = round_state['seats'][1]['uuid']
         self.street = self._round_state['street']
@@ -60,22 +102,22 @@ class State:
                     if ply['action'] == 'RAISE':
                         # Add raises to appropriate street
                         if street == 'preflop':
-                            if 'preflop_raises' in self.new_round_state:
+                            if 'preflop_raises' in self.new_round_state :
                                 self.new_round_state['preflop_raises'] += 1
                             else :    
                                 self.new_round_state['preflop_raises'] = 1
                         elif street == 'flop':
-                            if 'flop_raises' in self.new_round_state:
+                            if 'flop_raises' in self.new_round_state :
                                 self.new_round_state['flop_raises'] += 1
                             else :    
                                 self.new_round_state['flop_raises'] = 1
                         elif street == 'turn':
-                            if 'turn_raises' in self.new_round_state:
+                            if 'turn_raises' in self.new_round_state :
                                 self.new_round_state['turn_raises'] += 1
                             else :    
                                 self.new_round_state['turn_raises'] = 1
                         else:  # last street is river
-                            if 'river_raises' in self.new_round_state:
+                            if 'river_raises' in self.new_round_state :
                                 self.new_round_state['river_raises'] += 1
                             else :    
                                 self.new_round_state['river_raises'] = 1
@@ -83,15 +125,22 @@ class State:
 
                         # Add raises to appropriate player
                         if ply['uuid'] == self.p0_uuid:
-                            if 'p0_raises' in self.new_round_state:
+                            if 'p0_raises' in self.new_round_state :
                                 self.new_round_state['p0_raises'] += 1
                             else :    
                                 self.new_round_state['p0_raises'] = 1
+                            
+                            # Add latest amount of p0 to p0_prev_amount
+                            self.new_round_state['p0_prev_amount'] = ply['amount']
+
                         else:
-                            if 'p1_raises' in self.new_round_state:
+                            if 'p1_raises' in self.new_round_state :
                                 self.new_round_state['p1_raises'] += 1
                             else :    
                                 self.new_round_state['p1_raises'] = 1
+
+                            # Add latest amount of p1 to p1_prev_amount
+                            self.new_round_state['p1_prev_amount'] = ply['amount']
 
                         # Increment current street raises
                         # If street is not in curr_street_raises attribute, it means that the street has changed and must changed curr_street_raises accordingly
