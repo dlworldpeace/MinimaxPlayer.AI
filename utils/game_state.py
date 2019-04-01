@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import *
 from enum import Enum, unique
 import copy
 
@@ -35,61 +38,85 @@ import copy
 # TODO: use property getter/setter where applicable
 class State:
 
-    def __init__(self, round_state, hole_card_indices, is_terminal=False):
+    def __init__(self, round_state: Dict[str, Any], is_cached: bool : False, is_terminal: bool = False):
         self._round_state = round_state
-        self.p0_uuid = round_state['seats'][0]['uuid']
-        self.p1_uuid = round_state['seats'][1]['uuid']
-        self.p0_raises = 0
-        self.p1_raises = 0
-        self.preflop_raises = 0
-        self.flop_raises = 0
-        self.turn_raises = 0
-        self.river_raises = 0
-        self.curr_street_raises = 0
-        self.prev_history = ''
+        self.mainPot = round_state['pot']['main']['amount']
+        self.sidePot = round_state['pot']['main']['amount']
+        self.p0_uuid: str = round_state['seats'][0]['uuid']
+        self.p1_uuid: str = round_state['seats'][1]['uuid']
         self.street = self._round_state['street']
-        self.known_card_indices = hole_card_indices
+        self.prev_history = ''
+        self.is_cached = is_cached
+        self.new_round_state = copy.deepcopy(self._round_state)
 
-        for street, street_history in round_state['action_histories'].items():
-            """
-            In Python 3.7.0 the insertion-order preservation nature of dict objects has been declared to be an 
-            official part of the Python language spec. Therefore, you can depend on it"
-            """
-            self.curr_street_raises = 0
-            for ply in street_history:
-                if ply['action'] == 'RAISE':
-                    # Add raises to appropriate street
-                    if street == 'preflop':
-                        self.preflop_raises += 1
-                    elif street == 'flop':
-                        self.flop_raises += 1
-                    elif street == 'turn':
-                        self.turn_raises += 1
-                    else:  # last street is river
-                        self.river_raises += 1
+        if not is_cached : 
+            for street, street_history in round_state['action_histories'].items():
+                """
+                In Python 3.7.0 the insertion-order preservation nature of dict objects has been declared to be an 
+                official part of the Python language spec. Therefore, you can depend on it"
+                """
+                self.curr_street_raises = 0
+                for ply in street_history:
+                    if ply['action'] == 'RAISE':
+                        # Add raises to appropriate street
+                        if street == 'preflop':
+                            if 'preflop_raises' in self.new_round_state:
+                                self.new_round_state['preflop_raises'] += 1
+                            else :    
+                                self.new_round_state['preflop_raises'] = 1
+                        elif street == 'flop':
+                            if 'flop_raises' in self.new_round_state:
+                                self.new_round_state['flop_raises'] += 1
+                            else :    
+                                self.new_round_state['flop_raises'] = 1
+                        elif street == 'turn':
+                            if 'turn_raises' in self.new_round_state:
+                                self.new_round_state['turn_raises'] += 1
+                            else :    
+                                self.new_round_state['turn_raises'] = 1
+                        else:  # last street is river
+                            if 'river_raises' in self.new_round_state:
+                                self.new_round_state['river_raises'] += 1
+                            else :    
+                                self.new_round_state['river_raises'] = 1
+    
 
-                    # Add raises to appropriate player
-                    if ply['uuid'] == self.p0_uuid:
-                        self.p0_raises += 1
-                    else:
-                        self.p1_raises += 1
+                        # Add raises to appropriate player
+                        if ply['uuid'] == self.p0_uuid:
+                            if 'p0_raises' in self.new_round_state:
+                                self.new_round_state['p0_raises'] += 1
+                            else :    
+                                self.new_round_state['p0_raises'] = 1
+                        else:
+                            if 'p1_raises' in self.new_round_state:
+                                self.new_round_state['p1_raises'] += 1
+                            else :    
+                                self.new_round_state['p1_raises'] = 1
 
-                    # Increment current street raises
-                    self.curr_street_raises += 1
+                        # Increment current street raises
+                        # If street is not in curr_street_raises attribute, it means that the street has changed and must changed curr_street_raises accordingly
+                        if street not in self._round_state['curr_street_raises'] :
+                            self.new_round_state['curr_street_raises'] = {street : 1}
+                        else :
+                            self.new_round_state['curr_street_raises'][street] += 1
 
-                self.prev_history = ply
+                    self.new_round_state['prev_history'] = ply
+                    # Add prev_history to attribute if it has not been cached before
+                    self.prev_history = ply
+            self.is_cached = True       
 
-        self.current_player = round_state['next_player']
-        self.p0_stack = round_state['seats'][0]['stack']
+        else :
+            # It has been cached before, so the attribute should be in the round state
+            self.prev_history = self._round_state['prev_history']
 
+        self.current_player = self._round_state['next_player']
+        self.p0_stack = self._round_state['seats'][0]['stack']
         self.p1_stack = round_state['seats'][1]['stack']
         self.is_terminal = is_terminal
 
-    def current_player_uuid(self):
-        return self.p0_uuid if self.current_player == 0 else self.p1_uuid
-
     def raise_bet(self):
-        new_round_state = copy.deepcopy(self._round_state)
+        # I am not sure if i need to do an additional copy here, i am doing it just in case
+        new_round_state = copy.deepcopy(self.new_round_state)
         new_add_amount = 20 if self._round_state['street'] in ['preflop', 'flop'] else 40
         new_amount = self.prev_history['amount'] + new_add_amount
         # Note, the below does not lend compatibility to the preflop street
@@ -100,6 +127,13 @@ class State:
         new_round_state['next_player'] %= 2
         new_round_state['seats'][self.current_player]['stack'] -= new_add_amount
         new_round_state_action_histories = new_round_state['action_histories']
+        
+        # To be implemented for call
+        if self.current_player == 0 :
+            new_round_state['p0_prev_amount'] = new_amount
+        else : 
+            new_round_state['p1_prev_amount'] = new_amount
+
         if self.street in new_round_state_action_histories:
             new_round_state_action_histories[self.street].append({
                 'action': 'RAISE',
@@ -117,10 +151,10 @@ class State:
                 'uuid': self.current_player_uuid()
             }]
 
-        return State(new_round_state, self.known_card_indices)
+        return State(new_round_state, self.is_cached)
 
     def fold_bet(self):
-        new_round_state = copy.deepcopy(self._round_state)
+        new_round_state = copy.deepcopy(self.new_round_state)
         new_round_state_action_histories = new_round_state['action_histories']
         if self.street in new_round_state_action_histories:
             new_round_state_action_histories[self.street].append({
@@ -133,69 +167,102 @@ class State:
                 'uuid': self.current_player_uuid()
             }]
 
-        return State(new_round_state, self.known_card_indices, True)
+        return State(new_round_state, self.is_cached, True)
+
+    def current_player_uuid(self):
+        return self.p0_uuid if self.current_player == 0 else self.p1_uuid
+
 
     def call_bet(self):
-        raise NotImplementedError
+        new_round_state = copy.deepcopy(self.new_round_state)
+        new_amount = self.prev_history['amount']
+        if self.current_player == 0 :
+            new_paid_amount = new_amount - new_round_state['p0_prev_amount']
+        else :
+            new_paid_amount = new_amount - new_round_state['p1_prev_amount']
 
-    def switch_player(self):
-        self.current_player += 1
-        self.current_player %= 2
+        new_round_state['pot']['main']['amount'] += new_paid_amount
+        new_round_state['next_player'] += 1
+        new_round_state['next_player'] %= 2
+        new_round_state['seats'][self.current_player]['stack'] -= new_paid_amount
 
-    def add_one_more_community_card(self, card_index):
-        if self.street == 'flop':
-            self.street = 'turn'
-        elif self.street == 'turn':
-            self.street = 'river'
-        self.known_card_indices.append(card_index)
-        self.switch_player()
+        new_round_state_action_histories = new_round_state['action_histories']
+        
+        if self.street in new_round_state_action_histories:
+            new_round_state_action_histories[self.street].append({
+                'action' : 'CALL',
+                'amount' : new_amount,
+                'paid' : new_paid_amount
+                'uuid' : self.current_player_uuid()
+            })
+        else :
+            new_round_state_action_histories[self.street] =[{
+                'action' : 'CALL',
+                'amount' : new_amount,
+                'paid' : new_paid_amount
+                'uuid' : self.current_player_uuid()
+            }]
+
+        raise State(new_round_state, self.is_cached)
+
+    def mutate_to_next_player(self, action) :
+        """Updates the state that results from making a move 'action' from a state."""
+        return {'FOLD': state.fold_bet,
+                'RAISE': state.raise_bet,
+                'CALL': state.call_bet}[action]()
+
+    def get_main_pot(self) :
+        return self.new_round_state['pot']['main']['amount']
+
+    def get_side_pots(self) :
+        return self.new_round_state['pot']['side']
 
 # TODO: Replace poker game actions with Enums.
+# @junjie :  Is using strings better than using enums? Enums are for making the code more readable are just for efficiency?
 @unique
 class Action(Enum):
     FOLD = 0
     CALL = 1
     RAISE = 2
 
-class PokerGame:  # Static util class for State 
+
+class PokerGame:
 
     def __init__(self, current_state=None, search_algorithm=None, evaluation_function=None):
         pass
 
-    @staticmethod
-    def actions(self, state):
+    def actions(self, state: State):
         """Return a list of the allowable moves at this point."""
         if self.terminal_test(state):
             return []
 
-        can_raise = state.curr_street_raises < 4 and \
-                          (state.p0_raises < 4 if state.current_player == 0 else state.p1_raises < 4)
+        can_raise: bool = state.curr_street_raises < 4 and \
+                    (state.p0_raises < 4 if state.current_player == 0 else state.p1_raises < 4)
 
         if can_raise:
-            return ['FOLD', 'CALL', 'RAISE']
+            return [Action.FOLD, Action.CALL, Action.RAISE]
         else:
-            return ['FOLD', 'CALL']
+            return [Action.FOLD, Action.CALL]
 
-    @staticmethod
-    def result(self, state, action):
+    def result(self, state: State, action):
         """Return the state that results from making a move from a state."""
-        state.switch_player()
         return {'FOLD': state.fold_bet,
                 'RAISE': state.raise_bet,
                 'CALL': state.call_bet}[action]()
 
-    # TODO: our agent may not always be player 0
-    @staticmethod
+
+
+    #TODO: our agent may not always be player 0
     def utility(self, state, player):
         if state.prev_history['action'] == 'FOLD':
-            if player == state._round_state['next_player']:  # When folding, the next player remains as the player who folded
+            if player == state._round_state['next_player']: # When folding, the next player remains as the player who folded
                 return - state._round_state['pot']['main']
             else:
                 return state._round_state['pot']['main']
 
+
         raise NotImplementedError
 
-    @staticmethod
     def terminal_test(self, state):
         """Return True if this is a final state for the game."""
         return state.is_terminal
