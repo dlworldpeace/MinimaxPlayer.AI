@@ -35,7 +35,7 @@ import copy
 # TODO: use property getter/setter where applicable
 class State:
 
-    def __init__(self, round_state, hole_card, is_terminal=False):
+    def __init__(self, round_state, hole_card_indices, is_terminal=False):
         self._round_state = round_state
         self.p0_uuid = round_state['seats'][0]['uuid']
         self.p1_uuid = round_state['seats'][1]['uuid']
@@ -48,7 +48,7 @@ class State:
         self.curr_street_raises = 0
         self.prev_history = ''
         self.street = self._round_state['street']
-        self.known_card_indices = []
+        self.known_card_indices = hole_card_indices
 
         for street, street_history in round_state['action_histories'].items():
             """
@@ -78,12 +78,6 @@ class State:
                     self.curr_street_raises += 1
 
                 self.prev_history = ply
-
-        for card in hole_card:
-            self.known_card_indices.append(convert_card_to_index(card))
-
-        for card in self._round_state['community_card']:
-            self.known_card_indices.append(convert_card_to_index(card))
 
         self.current_player = round_state['next_player']
         self.p0_stack = round_state['seats'][0]['stack']
@@ -123,7 +117,7 @@ class State:
                 'uuid': self.current_player_uuid()
             }]
 
-        return State(new_round_state)
+        return State(new_round_state, self.known_card_indices)
 
     def fold_bet(self):
         new_round_state = copy.deepcopy(self._round_state)
@@ -139,7 +133,7 @@ class State:
                 'uuid': self.current_player_uuid()
             }]
 
-        return State(new_round_state, True)
+        return State(new_round_state, self.known_card_indices, True)
 
     def call_bet(self):
         raise NotImplementedError
@@ -156,38 +150,12 @@ class State:
         self.known_card_indices.append(card_index)
         self.switch_player()
 
-    def convert_card_to_index(self, card):
-        chars = list(card)
-        suite = {
-            'C': 0,
-            'D': 13,
-            'H': 26,
-            'S': 39}
-        rank = {
-            '2': 0,
-            '3': 1,
-            '4': 2,
-            '5': 3,
-            '6': 4,
-            '7': 5,
-            '8': 6,
-            '9': 7,
-            'T': 8,
-            'J': 9,
-            'Q': 10,
-            'K': 11,
-            'A': 12}
-        return suite[chars[0]] + rank[chars[1]]
-
-
-
 # TODO: Replace poker game actions with Enums.
 @unique
 class Action(Enum):
     FOLD = 0
     CALL = 1
     RAISE = 2
-
 
 class PokerGame:  # Static util class for State 
 
