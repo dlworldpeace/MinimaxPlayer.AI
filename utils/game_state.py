@@ -194,6 +194,7 @@ class PokerGame:  # Static util class for State
     def __init__(self, current_state=None, search_algorithm=None, evaluation_function=None):
         pass
 
+    @staticmethod
     def actions(self, state):
         """Return a list of the allowable moves at this point."""
         if self.terminal_test(state):
@@ -207,6 +208,7 @@ class PokerGame:  # Static util class for State
         else:
             return ['FOLD', 'CALL']
 
+    @staticmethod
     def result(self, state, action):
         """Return the state that results from making a move from a state."""
         state.switch_player()
@@ -215,6 +217,7 @@ class PokerGame:  # Static util class for State
                 'CALL': state.call_bet}[action]()
 
     # TODO: our agent may not always be player 0
+    @staticmethod
     def utility(self, state, player):
         if state.prev_history['action'] == 'FOLD':
             if player == state._round_state['next_player']:  # When folding, the next player remains as the player who folded
@@ -224,6 +227,7 @@ class PokerGame:  # Static util class for State
 
         raise NotImplementedError
 
+    @staticmethod
     def terminal_test(self, state):
         """Return True if this is a final state for the game."""
         return state.is_terminal
