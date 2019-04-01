@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-from typing import *
 from enum import Enum, unique
 import copy
 
@@ -35,24 +32,24 @@ import copy
 
 
 # TODO: check if showdown is a street
-# TODO: uise property getter/setter where applicable
+# TODO: use property getter/setter where applicable
 class State:
 
-    def __init__(self, round_state: Dict[str, Any], hole_card, is_terminal: bool = False):
+    def __init__(self, round_state, hole_card, is_terminal=False):
         self._round_state = round_state
-        self.p0_uuid: str = round_state['seats'][0]['uuid']
-        self.p1_uuid: str = round_state['seats'][1]['uuid']
-        self.p0_raises: int = 0
-        self.p1_raises: int = 0
-        self.preflop_raises: int = 0
-        self.flop_raises: int = 0
-        self.turn_raises: int = 0
-        self.river_raises: int = 0
-        self.curr_street_raises: int = 0
+        self.p0_uuid = round_state['seats'][0]['uuid']
+        self.p1_uuid = round_state['seats'][1]['uuid']
+        self.p0_raises = 0
+        self.p1_raises = 0
+        self.preflop_raises = 0
+        self.flop_raises = 0
+        self.turn_raises = 0
+        self.river_raises = 0
+        self.curr_street_raises = 0
         self.prev_history = ''
         self.street = self._round_state['street']
         self.known_card = []
-    
+
         for street, street_history in round_state['action_histories'].items():
             """
             In Python 3.7.0 the insertion-order preservation nature of dict objects has been declared to be an 
@@ -147,7 +144,7 @@ class State:
     def call_bet(self):
         raise NotImplementedError
 
-    def switch_player(self) :
+    def switch_player(self):
         self.current_player += 1
         self.current_player %= 2
 
@@ -159,6 +156,7 @@ class State:
         self.community_card.append(card)
         self.switch_player()
 
+
 # TODO: Replace poker game actions with Enums.
 @unique
 class Action(Enum):
@@ -166,39 +164,39 @@ class Action(Enum):
     CALL = 1
     RAISE = 2
 
-class PokerGame: #Static util class for State 
+
+class PokerGame:  # Static util class for State 
 
     def __init__(self, current_state=None, search_algorithm=None, evaluation_function=None):
         pass
 
-    def actions(self, state: State):
+    def actions(self, state):
         """Return a list of the allowable moves at this point."""
         if self.terminal_test(state):
             return []
 
-        can_raise: bool = state.curr_street_raises < 4 and \
-                    (state.p0_raises < 4 if state.current_player == 0 else state.p1_raises < 4)
+        can_raise = state.curr_street_raises < 4 and \
+                          (state.p0_raises < 4 if state.current_player == 0 else state.p1_raises < 4)
 
         if can_raise:
             return ['FOLD', 'CALL', 'RAISE']
         else:
             return ['FOLD', 'CALL']
 
-    def result(self, state: State, action):
+    def result(self, state, action):
         """Return the state that results from making a move from a state."""
         state.switch_player()
         return {'FOLD': state.fold_bet,
                 'RAISE': state.raise_bet,
                 'CALL': state.call_bet}[action]()
 
-    #TODO: our agent may not always be player 0
+    # TODO: our agent may not always be player 0
     def utility(self, state, player):
         if state.prev_history['action'] == 'FOLD':
-            if player == state._round_state['next_player']: # When folding, the next player remains as the player who folded
+            if player == state._round_state['next_player']:  # When folding, the next player remains as the player who folded
                 return - state._round_state['pot']['main']
             else:
                 return state._round_state['pot']['main']
-
 
         raise NotImplementedError
 
@@ -209,22 +207,22 @@ class PokerGame: #Static util class for State
     def convert_card_to_index(self, card):
         chars = list(card)
         suite = {
-            'C' : 0, 
-            'D' : 13, 
-            'H' : 26, 
-            'S' : 39}
+            'C': 0,
+            'D': 13,
+            'H': 26,
+            'S': 39}
         rank = {
-            '2' : 0,
-            '3' : 1,
-            '4' : 2,
-            '5' : 3,
-            '6' : 4,
-            '7' : 5,
-            '8' : 6,
-            '9' : 7,
-            'T' : 8,
-            'J' : 9,
-            'Q' : 10,
-            'K' : 11,
-            'A' : 12}
+            '2': 0,
+            '3': 1,
+            '4': 2,
+            '5': 3,
+            '6': 4,
+            '7': 5,
+            '8': 6,
+            '9': 7,
+            'T': 8,
+            'J': 9,
+            'Q': 10,
+            'K': 11,
+            'A': 12}
         return suite[chars[0]] + rank[chars[1]]
