@@ -1,6 +1,6 @@
 import copy
 from enum import Enum, unique
-
+import pprint
 from pypokerengine.utils.card_utils import (estimate_hole_card_win_rate,
                                             gen_cards)
 
@@ -94,13 +94,25 @@ class State:
         self.hole_card_indices = hole_card_indices
         self.community_card_indices = community_card_indices
 
+
         if not is_cached : 
-            for street, street_history in round_state['action_histories'].items():
+            self.new_round_state['preflop_raises'] = 0
+            self.new_round_state['flop_raises'] = 0
+            self.new_round_state['turn_raises'] = 0
+            self.new_round_state['river_raises'] = 0
+            self.new_round_state['p0_raises'] = 0
+            self.new_round_state['p1_raises'] = 0
+            self.new_round_state['current_street_raises'] = {}
+            self.new_round_state['prev_history'] = {}
+            self.new_round_state['p0_prev_amount'] = 0
+            self.new_round_state['p1_prev_amount'] = 0
+            eventsorder= ['preflop', 'flop', 'turn', 'river','showdown']
+            for street, street_history in sorted(round_state['action_histories'].items(), key = lambda i : eventsorder.index(i[0])):
                 """
                 In Python 3.7.0 the insertion-order preservation nature of dict objects has been declared to be an 
                 official part of the Python language spec. Therefore, you can depend on it"
                 """
-                self.curr_street_raises = 0
+
                 for ply in street_history:
                     if ply['action'] == 'RAISE':
                         # Add raises to appropriate street
@@ -146,10 +158,14 @@ class State:
 
                         # Increment current street raises
                         # If street is not in current_street_raises attribute, it means that the street has changed and must changed curr_street_raises accordingly
-                        # if street not in self._round_state['current_street_raises'] :
-                        #     self.new_round_state['current_street_raises'] = {street : 1}
-                        # else :
-                        #     self.new_round_state['current_street_raises'][street] += 1
+                        if 'current_street_raises' in self._round_state :
+                            if street not in self._round_state['current_street_raises'] :
+                                self.new_round_state['current_street_raises'] = {street : 1}
+                            else :
+                                self.new_round_state['current_street_raises'][street] += 1
+                        else :
+                            self.new_round_state['current_street_raises'] = {street : 1}
+       
 
                     self.new_round_state['prev_history'] = ply
                     # Add prev_history to attribute if it has not been cached before
@@ -164,6 +180,9 @@ class State:
         self.p0_stack = self._round_state['seats'][0]['stack']
         self.p1_stack = round_state['seats'][1]['stack']
         self.is_terminal = is_terminal
+
+    def get_new_round_state(self) :
+        return self.new_round_state
 
     def get_preflop_raises (self) :
         return self.new_round_state['preflop_raises']
@@ -322,9 +341,11 @@ class PokerGame:
             return []
 
         can_raise = True
+        pp = pprint.PrettyPrinter(indent=2)
+        pp.pprint(state.get_new_round_state())
         # TODO: solve the bug below with p0_raises
-        # can_raise = state.curr_street_raises < 4 and \
-        #             (state.p0_raises < 4 if state.current_player == 0 else state.p1_raises < 4)
+        can_raise = state.get_current_street_raises() < 4 and \
+                     (state.get_p0_raises() < 4 if state.get_current_player() == 0 else state.get_p1_raises() < 4)
 
         if can_raise:
             return ['FOLD', 'CALL', 'RAISE']
@@ -367,9 +388,9 @@ class PokerGame:
         return card
 
     #TODO: our agent may not always be player 0
-    # def utility(self, state, player):
     @staticmethod
     def utility(state):
+        print(state.prev_history)
         if state.prev_history['action'] == 'FOLD':
             if state.current_player == state._round_state['next_player']: # When folding, the next player remains as the player who folded
                 return - state.get_main_pot()
