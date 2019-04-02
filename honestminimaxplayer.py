@@ -3,8 +3,9 @@ import itertools
 import random
 from collections import namedtuple
 
-import utils
 from pypokerengine.players import BasePokerPlayer
+from utils.game_state import PokerGame, State
+
 
 class HonestMiniMaxPlayer(BasePokerPlayer):
 
@@ -30,17 +31,19 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
             'K': 11,
             'A': 12}
 
-        def convert_card_to_index(self, card):
+        def convert_card_to_index(card):
             chars = list(card)
             return suite[chars[0]] + rank[chars[1]]
 
-        known_card_indices = []
-        for card in hole_card:
-            known_card_indices.append(convert_card_to_index(card))
-        for card in round_state['community_card']:
-            known_card_indices.append(convert_card_to_index(card))
+        hole_card_indices = []
+        community_card_indices = []
 
-        state = State(round_state, known_card_indices)
+        for card in hole_card:
+            hole_card_indices.append(convert_card_to_index(card))
+        for card in round_state['community_card']:
+            community_card_indices.append(convert_card_to_index(card))
+
+        state = State(round_state, hole_card_indices, community_card_indices)
 
         if state.street == 'preflop':
 
@@ -58,23 +61,19 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 actions = PokerGame.actions(state) # get valid actions
                 
                 for action in actions :
+                    
+                    state = PokerGame.result(state, action)
 
                     if action == 'FOLD' :
-                        pot_size = state['pot']['main']['amount']
-                        v = max(v, -pot_size)
-                        # state = state.fold_bet()
-                        # state.switch_player()
-
+                        v = max(v, -PokerGame.utility(state))
                     elif action == 'CALL' : 
-                        if state.prev_history['action'] == 'RAISE':
+                        if state.prev_history['action'] == 'RAISE' or \
+                            state.prev_history['action'] == 'CALL':
                             v = max(v, chance_node(state))
                         else:
                             v = max(v, min_value(state))
-                        state.switch_player()
-
                     else: # action == 'RAISE'
                         v = max(v, min_value(state))
-                        state.switch_player()
 
                 return v
 
@@ -85,45 +84,48 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
                 for action in actions :
 
+                    state = PokerGame.result(state, action)
+
                     if action == 'FOLD' :
-                        pot_size = state['pot']['main']['amount']
-                        v = min(v, pot_size)
-                        # state = state.fold_bet()
-                        # state.switch_player()
+                        v = min(v, PokerGame.utility(state))
 
                     elif action == 'CALL' :
-                        if state.prev_history['action'] == 'RAISE' :         
+                        if state.prev_history['action'] == 'RAISE' or \
+                            state.prev_history['action'] == 'CALL':         
                             v = min(v, chance_node(state))
                         else :
                             v = min(v, max_value(state))
-                        state.switch_player()
 
                     else: # action == 'RAISE'
                         v = min(v, max_value(state))
-                        state.switch_player()
 
                 return v
 
             def chance_node(state):
                 
-                if PokerGame.terminal_test(state): # needless to draw, already 5 cc
-                    return 0# TODO estimated hands value based on hold cards + community cards
+                if PokerGame.terminal_test(state): # terminal node reached
+                    return PokerGame.utility(state)
 
                 sum_chances = 0
                 num_of_unknown_cards = total_num_of_cards - len(state.known_card_indices)
-                
+
                 for i in range(total_num_of_cards):
                     if i in state.known_card_indices:
                         continue
 
-                    state.add_one_more_community_card(i)
-                    if player is smallblind:
-                        util = max_value(state)
+                    if state.current_player == state._round_state['next_player']:
+                        util = max_value(state.add_one_more_community_card(i))
                     else:
-                        util = min_value(state)
+                        util = min_value(state.add_one_more_community_card(i))
                     sum_chances += util
 
                 return sum_chances / num_of_unknown_cards
+
+            def shuffled(iterable):
+                """Randomly shuffle a copy of iterable."""
+                items = list(iterable)
+                random.shuffle(items)
+                return items
 
             def argmax_random_tie(seq, key=lambda x: x):
                 """Return an element with highest fn(seq[i]) score; break ties at random."""
@@ -131,7 +133,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
             # return the best action based on expected minimax value:
             return argmax_random_tie(PokerGame.actions(state),
-                  key=lambda a: min_value(PokerGame.result(state, a)))
+                  key=lambda a: min_value(PokerGame.result(state, a))).lower()
         
         return action
 
