@@ -232,6 +232,9 @@ class State:
     def current_player_uuid(self):
         return self.p0_uuid if self.current_player == 0 else self.p1_uuid
 
+    def update_prev_history(self, action):
+        self.new_round_state['prev_history'] = action
+
     def raise_bet(self):
         # I am not sure if i need to do an additional copy here, i am doing it just in case
         new_round_state = copy.deepcopy(self.new_round_state)
@@ -253,37 +256,47 @@ class State:
             new_round_state['p1_prev_amount'] = new_amount
 
         if self.street in new_round_state_action_histories:
-            new_round_state_action_histories[self.street].append({
+            action = {
                 'action': 'RAISE',
                 'amount': new_amount,
                 'paid': new_paid,
                 'add_amount': new_add_amount,
                 'uuid': self.current_player_uuid()
-            })
+            }
+            new_round_state_action_histories[self.street].append(action)
+            self.update_prev_history(action)
         else:
-            new_round_state_action_histories[self.street] = [{
+            action = {
                 'action': 'RAISE',
                 'amount': new_amount,
                 'paid': new_paid,
                 'add_amount': new_add_amount,
                 'uuid': self.current_player_uuid()
-            }]
+            }
+            new_round_state_action_histories[self.street]= [action]
+            self.update_prev_history(action)
+
 
         return State(new_round_state, self.hole_card_indices, self.community_card_indices, self.is_cached)
 
     def fold_bet(self):
         new_round_state = copy.deepcopy(self.new_round_state)
         new_round_state_action_histories = new_round_state['action_histories']
+
         if self.street in new_round_state_action_histories:
-            new_round_state_action_histories[self.street].append({
+            action = {
                 'action': 'FOLD',
                 'uuid': self.current_player_uuid()
-            })
+            }
+            new_round_state_action_histories[self.street].append(action)
+            self.update_prev_history(action)
         else:
-            new_round_state_action_histories[self.street] = [{
+            action = {
                 'action': 'FOLD',
                 'uuid': self.current_player_uuid()
-            }]
+            }
+            new_round_state_action_histories[self.street] = [action]
+            self.update_prev_history(action)
 
         return State(new_round_state, self.hole_card_indices, self.community_card_indices, self.is_cached, True)
 
@@ -303,19 +316,24 @@ class State:
         new_round_state_action_histories = new_round_state['action_histories']
         
         if self.street in new_round_state_action_histories:
-            new_round_state_action_histories[self.street].append({
+            action = {
                 'action' : 'CALL',
                 'amount' : new_amount,
                 'paid' : new_paid_amount,
                 'uuid' : self.current_player_uuid()
-            })
+            }
+            new_round_state_action_histories[self.street].append(action)
+            self.update_prev_history(action)
+
         else :
-            new_round_state_action_histories[self.street] =[{
+            action ={
                 'action' : 'CALL',
                 'amount' : new_amount,
                 'paid' : new_paid_amount,
                 'uuid' : self.current_player_uuid()
-            }]
+            }
+            new_round_state_action_histories[self.street] =[action]
+            self.update_prev_history(action)
 
         return State(new_round_state, self.hole_card_indices, self.community_card_indices, self.is_cached)
 
