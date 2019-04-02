@@ -62,18 +62,18 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 
                 for action in actions :
                     
-                    state = PokerGame.result(state, action)
+                    new_state = PokerGame.result(state, action)
 
                     if action == 'FOLD' :
-                        v = max(v, -PokerGame.utility(state))
+                        v = max(v, -1 * PokerGame.utility(new_state))
                     elif action == 'CALL' : 
                         if state.prev_history['action'] == 'RAISE' or \
                             state.prev_history['action'] == 'CALL':
-                            v = max(v, chance_node(state))
+                            v = max(v, chance_node(new_state))
                         else:
-                            v = max(v, min_value(state))
+                            v = max(v, min_value(new_state))
                     else: # action == 'RAISE'
-                        v = max(v, min_value(state))
+                        v = max(v, min_value(new_state))
 
                 return v
 
@@ -84,20 +84,18 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
                 for action in actions :
 
-                    state = PokerGame.result(state, action)
+                    new_state = PokerGame.result(state, action)
 
                     if action == 'FOLD' :
-                        v = min(v, PokerGame.utility(state))
-
+                        v = min(v, PokerGame.utility(new_state))
                     elif action == 'CALL' :
                         if state.prev_history['action'] == 'RAISE' or \
                             state.prev_history['action'] == 'CALL':         
-                            v = min(v, chance_node(state))
+                            v = min(v, chance_node(new_state))
                         else :
-                            v = min(v, max_value(state))
-
+                            v = min(v, max_value(new_state))
                     else: # action == 'RAISE'
-                        v = min(v, max_value(state))
+                        v = min(v, max_value(new_state))
 
                 return v
 
@@ -107,16 +105,17 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                     return PokerGame.utility(state)
 
                 sum_chances = 0
-                num_of_unknown_cards = total_num_of_cards - len(state.known_card_indices)
+                num_of_unknown_cards = total_num_of_cards - \
+                     len(state.hole_card_indices) - len(state.community_card_indices)
 
                 for i in range(total_num_of_cards):
-                    if i in state.known_card_indices:
+                    if i in state.hole_card_indices or i in state.community_card_indices:
                         continue
 
-                    if state.current_player == state._round_state['next_player']:
-                        util = max_value(state.add_one_more_community_card(i))
+                    if PokerGame.honestminimaxplayer_is_smallblind(state):
+                        util = max_value(PokerGame.add_one_more_community_card(state, i))
                     else:
-                        util = min_value(state.add_one_more_community_card(i))
+                        util = min_value(PokerGame.add_one_more_community_card(state, i))
                     sum_chances += util
 
                 return sum_chances / num_of_unknown_cards
