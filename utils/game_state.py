@@ -1,6 +1,7 @@
 import copy
-from enum import Enum, unique
 import pprint
+from enum import Enum, unique
+
 from pypokerengine.utils.card_utils import (estimate_hole_card_win_rate,
                                             gen_cards)
 
@@ -358,10 +359,8 @@ class PokerGame:
         if PokerGame.terminal_test(state):
             return []
 
-        can_raise = True
         pp = pprint.PrettyPrinter(indent=2)
         pp.pprint(state.get_new_round_state())
-        # TODO: solve the bug below with p0_raises
         can_raise = state.get_current_street_raises() < 4 and \
                      (state.get_p0_raises() < 4 if state.get_current_player() == 0 else state.get_p1_raises() < 4)
 
@@ -389,6 +388,7 @@ class PokerGame:
         elif new_state.street == 'turn':
             new_state.street = 'river'
         new_state.community_card_indices.append(card_index)
+        new_state.new_round_state['current_street_raises'] = {new_state.street : 0}
 
         return new_state
 
@@ -410,10 +410,11 @@ class PokerGame:
     def utility(state):
         print(state.prev_history)
         if state.prev_history['action'] == 'FOLD':
-            if state.current_player == state._round_state['next_player']: # When folding, the next player remains as the player who folded
-                return - state.get_main_pot()
-            else:
-                return state.get_main_pot()
+            # if state.current_player == state._round_state['next_player']: # When folding, the next player remains as the player who folded
+            #     return - state.get_main_pot()
+            # else:
+            #     return state.get_main_pot()
+            return state.get_main_pot() / 2
         elif state.prev_history['action'] == 'CALL':
             # use monte-carlo hand strength estimator
             hole_card = gen_cards(PokerGame.convert_index_to_card(state.hole_card_indices))
@@ -427,6 +428,10 @@ class PokerGame:
                 return expected_win
         else:
             raise NotImplementedError
+
+    @staticmethod
+    def honestminimaxplayer_is_smallblind(state):
+        return state.current_player == state._round_state['small_blind_pos']
 
     @staticmethod
     def terminal_test(state):
