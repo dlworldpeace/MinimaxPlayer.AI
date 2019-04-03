@@ -63,6 +63,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 for action in actions :
                     
                     new_state = PokerGame.result(state, action)
+                    print(new_state.new_round_state['prev_history'])
 
                     if action == 'FOLD' :
                         v = max(v, -1 * PokerGame.utility(new_state))
@@ -85,6 +86,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 for action in actions :
 
                     new_state = PokerGame.result(state, action)
+                    print(new_state.new_round_state['prev_history'])
 
                     if action == 'FOLD' :
                         v = min(v, PokerGame.utility(new_state))
@@ -128,7 +130,12 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
             def argmax_random_tie(seq, key=lambda x: x):
                 """Return an element with highest fn(seq[i]) score; break ties at random."""
-                return max(shuffled(seq), key=key)
+                shuffled_seq = shuffled(seq)
+                string = "shuffled sequence of actions: "
+                for action in shuffled_seq:
+                    string += action + " "
+                print(string)
+                return max(shuffled_seq, key=key)
 
             # return the best action based on expected minimax value:
             return argmax_random_tie(PokerGame.actions(state),

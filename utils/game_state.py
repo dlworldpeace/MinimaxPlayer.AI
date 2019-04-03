@@ -166,7 +166,6 @@ class State:
                                 self.new_round_state['current_street_raises'][street] += 1
                         else :
                             self.new_round_state['current_street_raises'] = {street : 1}
-       
 
                     self.new_round_state['prev_history'] = ply
                     # Add prev_history to attribute if it has not been cached before
@@ -233,9 +232,6 @@ class State:
     def current_player_uuid(self):
         return self.p0_uuid if self.current_player == 0 else self.p1_uuid
 
-    def update_prev_history(self, action):
-        self.new_round_state['prev_history'] = action
-
     def raise_bet(self):
         # I am not sure if i need to do an additional copy here, i am doing it just in case
         new_round_state = copy.deepcopy(self.new_round_state)
@@ -265,7 +261,6 @@ class State:
                 'uuid': self.current_player_uuid()
             }
             new_round_state_action_histories[self.street].append(action)
-            self.update_prev_history(action)
         else:
             action = {
                 'action': 'RAISE',
@@ -275,8 +270,7 @@ class State:
                 'uuid': self.current_player_uuid()
             }
             new_round_state_action_histories[self.street]= [action]
-            self.update_prev_history(action)
-
+        new_round_state['prev_history'] = action
 
         return State(new_round_state, self.hole_card_indices, self.community_card_indices, self.is_cached)
 
@@ -290,14 +284,13 @@ class State:
                 'uuid': self.current_player_uuid()
             }
             new_round_state_action_histories[self.street].append(action)
-            self.update_prev_history(action)
         else:
             action = {
                 'action': 'FOLD',
                 'uuid': self.current_player_uuid()
             }
             new_round_state_action_histories[self.street] = [action]
-            self.update_prev_history(action)
+        new_round_state['prev_history'] = action
 
         return State(new_round_state, self.hole_card_indices, self.community_card_indices, self.is_cached, True)
 
@@ -324,8 +317,6 @@ class State:
                 'uuid' : self.current_player_uuid()
             }
             new_round_state_action_histories[self.street].append(action)
-            self.update_prev_history(action)
-
         else :
             action ={
                 'action' : 'CALL',
@@ -334,8 +325,8 @@ class State:
                 'uuid' : self.current_player_uuid()
             }
             new_round_state_action_histories[self.street] =[action]
-            self.update_prev_history(action)
-
+        new_round_state['prev_history'] = action
+        
         return State(new_round_state, self.hole_card_indices, self.community_card_indices, self.is_cached)
 
 
@@ -374,6 +365,7 @@ class PokerGame:
     @staticmethod
     def result(state, action):
         """Return the state that results from making a move from a state."""
+        print("action called: " + action)
         return {'FOLD': state.fold_bet,
                 'RAISE': state.raise_bet,
                 'CALL': state.call_bet}[action]()
