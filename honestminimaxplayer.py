@@ -58,18 +58,18 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
             def max_value(state):
 
                 v = -infinity
-                actions = PokerGame.actions(state) # get valid actions
-                
+                actions = PokerGame.actions(state)
+                print(actions)
+
                 for action in actions :
                     
-                    new_state = PokerGame.result(state, action)
-                    print(new_state.new_round_state['prev_history'])
+                    new_state = PokerGame.result(state, action) 
+                    print(new_state._round_state['action_histories'][state.street])
 
                     if action == 'FOLD' :
                         v = max(v, -1 * PokerGame.utility(new_state))
                     elif action == 'CALL' : 
-                        if state.prev_history['action'] == 'RAISE' or \
-                            state.prev_history['action'] == 'CALL':
+                        if len(new_state._round_state['action_histories'][state.street]) > 1:
                             v = max(v, chance_node(new_state))
                         else:
                             v = max(v, min_value(new_state))
@@ -81,18 +81,18 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
             def min_value(state):
 
                 v = infinity
-                actions = PokerGame.actions(state) # get valid actions
+                actions = PokerGame.actions(state)
+                print(actions)
 
                 for action in actions :
 
-                    new_state = PokerGame.result(state, action)
-                    print(new_state.new_round_state['prev_history'])
+                    new_state = PokerGame.result(state, action) 
+                    print(new_state._round_state['action_histories'][state.street])
 
                     if action == 'FOLD' :
                         v = min(v, PokerGame.utility(new_state))
                     elif action == 'CALL' :
-                        if state.prev_history['action'] == 'RAISE' or \
-                            state.prev_history['action'] == 'CALL':         
+                        if len(new_state._round_state['action_histories'][state.street]) > 1: 
                             v = min(v, chance_node(new_state))
                         else :
                             v = min(v, max_value(new_state))
@@ -106,41 +106,45 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                 if PokerGame.terminal_test(state): # terminal node reached
                     return PokerGame.utility(state)
 
-                sum_chances = 0
+                print("____Going to the next street by flipping one more community card____")
+
+                sum_chances = 0.0
                 num_of_unknown_cards = total_num_of_cards - \
                      len(state.hole_card_indices) - len(state.community_card_indices)
 
                 for i in range(total_num_of_cards):
                     if i in state.hole_card_indices or i in state.community_card_indices:
                         continue
-
-                    if PokerGame.honestminimaxplayer_is_smallblind(state):
-                        util = max_value(PokerGame.add_one_more_community_card(state, i))
+                    elif PokerGame.honestminimaxplayer_is_smallblind(state):
+                        sum_chances += max_value(PokerGame.add_one_more_community_card(state, i))
                     else:
-                        util = min_value(PokerGame.add_one_more_community_card(state, i))
-                    sum_chances += util
+                        sum_chances += min_value(PokerGame.add_one_more_community_card(state, i))
 
                 return sum_chances / num_of_unknown_cards
 
-            def shuffled(iterable):
-                """Randomly shuffle a copy of iterable."""
-                items = list(iterable)
-                random.shuffle(items)
-                return items
-
-            def argmax_random_tie(seq, key=lambda x: x):
-                """Return an element with highest fn(seq[i]) score; break ties at random."""
-                shuffled_seq = shuffled(seq)
-                string = "shuffled sequence of actions: "
-                for action in shuffled_seq:
-                    string += action + " "
-                print(string)
-                return max(shuffled_seq, key=key)
-
             # return the best action based on expected minimax value:
-            return argmax_random_tie(PokerGame.actions(state),
-                  key=lambda a: min_value(PokerGame.result(state, a))).lower()
-        
+            action_utilities = {}
+            maximum = -infinity
+            
+            for a in PokerGame.actions(state):
+                new_state = PokerGame.result(state, a) 
+                print(new_state._round_state['action_histories'][state.street])
+
+                if a == 'FOLD' :
+                    v = -1 * PokerGame.utility(new_state)
+                elif a == 'CALL' : 
+                    if len(new_state._round_state['action_histories'][state.street]) > 1:
+                        v = chance_node(new_state)
+                    else:
+                        v = min_value(new_state)
+                else: # action == 'RAISE'
+                    v = min_value(new_state)
+                action_utilities[a] = v
+
+            for key, value in action_utilities:
+                if value > maximum:
+                    action = key
+
         return action
 
     def receive_game_start_message(self, game_info):
