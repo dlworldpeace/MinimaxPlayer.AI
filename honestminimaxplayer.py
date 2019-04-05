@@ -59,6 +59,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
                 v = -infinity
                 actions = PokerGame.actions(state)
+                print("Max Player")
                 print(actions)
 
                 for action in actions :
@@ -82,6 +83,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
                 v = infinity
                 actions = PokerGame.actions(state)
+                print("Min Player")
                 print(actions)
 
                 for action in actions :

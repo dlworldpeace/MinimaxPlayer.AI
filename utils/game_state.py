@@ -96,6 +96,7 @@ class State:
         self.community_card_indices = community_card_indices
 
         if not is_cached : 
+            print('Caching')
             self.new_round_state['preflop_raises'] = 0
             self.new_round_state['flop_raises'] = 0
             self.new_round_state['turn_raises'] = 0
@@ -112,7 +113,8 @@ class State:
                 In Python 3.7.0 the insertion-order preservation nature of dict objects has been declared to be an 
                 official part of the Python language spec. Therefore, you can depend on it"
                 """
-
+                print('Caching street is ')
+                print(street)
                 for ply in street_history:
                     if ply['action'] == 'RAISE':
                         # Add raises to appropriate street
@@ -146,7 +148,6 @@ class State:
                             
                             # Add latest amount of p0 to p0_prev_amount
                             self.new_round_state['p0_prev_amount'] = ply['amount']
-
                         else:
                             if 'p1_raises' in self.new_round_state :
                                 self.new_round_state['p1_raises'] += 1
@@ -158,8 +159,8 @@ class State:
 
                         # Increment current street raises
                         # If street is not in current_street_raises attribute, it means that the street has changed and must changed curr_street_raises accordingly
-                        if 'current_street_raises' in self._round_state :
-                            if street not in self._round_state['current_street_raises'] :
+                        if 'current_street_raises' in self.new_round_state :
+                            if street not in self.new_round_state['current_street_raises'] :
                                 self.new_round_state['current_street_raises'] = {street : 1}
                             else :
                                 self.new_round_state['current_street_raises'][street] += 1
@@ -169,6 +170,15 @@ class State:
                     self.new_round_state['prev_history'] = ply
                     # Add prev_history to attribute if it has not been cached before
                     self.prev_history = ply
+
+                
+                # Need to account for when the street has changed but the action history in that street is still zero
+                if 'current_street_raises' in self.new_round_state :
+                    #print(street + " : " + str(len(street_history))
+                    if street not in self.new_round_state['current_street_raises'] and len(street_history) == 0 :
+                        self.new_round_state['current_street_raises'] = {street : 0}
+  
+
             self.is_cached = True       
 
         else :
@@ -230,6 +240,15 @@ class State:
 
     def current_player_uuid(self):
         return self.p0_uuid if self.current_player == 0 else self.p1_uuid
+
+    def get_community_card_indices(self) :
+        return self.community_card_indices
+
+    def get_hole_card_indices(self) :
+        return self.hole_card_indices    
+
+    def get_is_cached_state(self) :
+        return self.is_cached
 
     def raise_bet(self):
         # I am not sure if i need to do an additional copy here, i am doing it just in case
@@ -348,6 +367,7 @@ class PokerGame:
     def actions(state):
         """Return a list of the allowable moves at this point."""
         if PokerGame.terminal_test(state):
+            print("Terminal state")
             return []
 
         pp = pprint.PrettyPrinter(indent=2)
@@ -373,21 +393,25 @@ class PokerGame:
     @staticmethod
     def add_one_more_community_card(state, card_index):
         """Return the state that results from drawing one more community card from a state."""
-        new_state = copy.deepcopy(state)
+        new_round_state = copy.deepcopy(state.get_new_round_state())
 
         print("add community card index: " + str(card_index))
 
-        if new_state.street == 'flop':
-            new_state.street = 'turn'
-            new_state.new_round_state['street'] = 'turn'
-        elif new_state.street == 'turn':
-            new_state.street = 'river'
-            new_state.new_round_state['street'] = 'river'
-        new_state.community_card_indices.append(card_index)
-        new_state.new_round_state['current_street_raises'] = {new_state.street : 0}
-        new_state.new_round_state['next_player'] = new_state.new_round_state['small_blind_pos']
+        if new_round_state['street'] == 'flop':
+            new_round_state['street'] = 'turn'
+        elif new_round_state['street'] == 'turn':
+            new_round_state['street'] = 'river'
+        
+        community_card_indices = state.get_community_card_indices()
+        hole_card_indices = state.get_hole_card_indices()
+        is_cached = state.get_is_cached_state()
 
-        return new_state
+        community_card_indices.append(card_index)
+
+        new_round_state['current_street_raises'] = {new_round_state['street'] : 0}
+        new_round_state['next_player'] = new_round_state['small_blind_pos']
+
+        return State(new_round_state, hole_card_indices, community_card_indices, is_cached)
 
     @staticmethod
     def convert_index_to_card(indices):
@@ -432,5 +456,8 @@ class PokerGame:
 
     @staticmethod
     def terminal_test(state):
+        print("Terminal Test")
+        pp = pprint.PrettyPrinter(indent=2)
+        pp.pprint(state.get_new_round_state())
         """Return True if this is a final state for the game."""
-        return state.is_terminal or (state.street == 'river' and state.prev_history['action'] == 'CALL')
+        return state.is_terminal or (state.street == 'river' and (state.street in state.new_round_state['action_histories'] and state.new_round_state['action_histories'][state.street][-1] == 'CALL'))
