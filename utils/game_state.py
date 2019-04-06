@@ -421,7 +421,7 @@ class PokerGame:
         
         for index in indices:
             rank_index = index % 13
-            suite_index = (index - rank) / 13
+            suite_index = (index - rank_index) / 13
             card.append(suite[suite_index] + rank[rank_index])
 
         return card
@@ -440,7 +440,7 @@ class PokerGame:
             # use monte-carlo hand strength estimator
             hole_card = gen_cards(PokerGame.convert_index_to_card(state.hole_card_indices))
             community_card = gen_cards(PokerGame.convert_index_to_card(state.community_card_indices))
-            win_probability = estimate_hole_card_win_rate(nb_simulation=1000, nb_player=2, hole_card=hole_card, community_card=community_card)
+            win_probability = estimate_hole_card_win_rate(nb_simulation=200, nb_player=2, hole_card=hole_card, community_card=community_card)
             expected_win = (2 * win_probability - 1) * state.get_main_pot()
 
             if state.current_player == state._round_state['next_player']:
@@ -460,4 +460,11 @@ class PokerGame:
         pp = pprint.PrettyPrinter(indent=2)
         pp.pprint(state.get_new_round_state())
         """Return True if this is a final state for the game."""
-        return state.is_terminal or (state.street == 'river' and (state.street in state.new_round_state['action_histories'] and state.new_round_state['action_histories'][state.street][-1] == 'CALL'))
+        if state.is_terminal:
+            return True
+        elif 'river' not in state.new_round_state['action_histories']:
+            return False
+        else:
+            river_actions = state.new_round_state['action_histories']['river']
+            print(river_actions)
+            return len(river_actions) > 1 and river_actions[-1]['action'] == 'CALL'

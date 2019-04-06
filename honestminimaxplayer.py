@@ -45,7 +45,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
         state = State(round_state, hole_card_indices, community_card_indices)
 
-        if state.street == 'preflop':
+        if state.street == 'preflop' or state.street == 'flop' or state.street == 'turn':
 
             #TODO Check lookup table, fold if necessary, call if hold cards good to go
             action = 'call'
@@ -105,7 +105,7 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
 
             def chance_node(state):
                 
-                if PokerGame.terminal_test(state): # terminal node reached
+                if PokerGame.terminal_test(state):
                     return PokerGame.utility(state)
 
                 print("____Going to the next street by flipping one more community card____")
@@ -143,9 +143,13 @@ class HonestMiniMaxPlayer(BasePokerPlayer):
                     v = min_value(new_state)
                 action_utilities[a] = v
 
-            for key, value in action_utilities:
-                if value > maximum:
-                    action = key
+            print("Expected minimax is calculated, Waiting for Argmax(action)...")
+
+            for key in action_utilities:
+                if action_utilities[key] > maximum:
+                    action = key.lower()
+
+            print("Argmax action is chosen to be: " + action)
 
         return action
 
